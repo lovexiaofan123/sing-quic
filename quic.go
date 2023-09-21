@@ -9,7 +9,6 @@ import (
 	"github.com/metacubex/quic-go"
 	"github.com/metacubex/quic-go/http3"
 	M "github.com/sagernet/sing/common/metadata"
-	aTLS "github.com/sagernet/sing/common/tls"
 )
 
 type Config interface {
@@ -36,36 +35,15 @@ type EarlyListener interface {
 	Addr() net.Addr
 }
 
-func Dial(ctx context.Context, conn net.PacketConn, addr net.Addr, config aTLS.Config, quicConfig *quic.Config) (quic.Connection, error) {
-	if quicTLSConfig, isQUICConfig := config.(Config); isQUICConfig {
-		return quicTLSConfig.Dial(ctx, conn, addr, quicConfig)
-	}
-	tlsConfig, err := config.Config()
-	if err != nil {
-		return nil, err
-	}
+func Dial(ctx context.Context, conn net.PacketConn, addr net.Addr, tlsConfig *tls.Config, quicConfig *quic.Config) (quic.Connection, error) {
 	return quic.Dial(ctx, conn, addr, tlsConfig, quicConfig)
 }
 
-func DialEarly(ctx context.Context, conn net.PacketConn, addr net.Addr, config aTLS.Config, quicConfig *quic.Config) (quic.EarlyConnection, error) {
-	if quicTLSConfig, isQUICConfig := config.(Config); isQUICConfig {
-		return quicTLSConfig.DialEarly(ctx, conn, addr, quicConfig)
-	}
-	tlsConfig, err := config.Config()
-	if err != nil {
-		return nil, err
-	}
+func DialEarly(ctx context.Context, conn net.PacketConn, addr net.Addr, tlsConfig *tls.Config, quicConfig *quic.Config) (quic.EarlyConnection, error) {
 	return quic.DialEarly(ctx, conn, addr, tlsConfig, quicConfig)
 }
 
-func CreateTransport(conn net.PacketConn, quicConnPtr *quic.EarlyConnection, serverAddr M.Socksaddr, config aTLS.Config, quicConfig *quic.Config, enableDatagrams bool) (http.RoundTripper, error) {
-	if quicTLSConfig, isQUICConfig := config.(Config); isQUICConfig {
-		return quicTLSConfig.CreateTransport(conn, quicConnPtr, serverAddr, quicConfig, enableDatagrams), nil
-	}
-	tlsConfig, err := config.Config()
-	if err != nil {
-		return nil, err
-	}
+func CreateTransport(conn net.PacketConn, quicConnPtr *quic.EarlyConnection, serverAddr M.Socksaddr, tlsConfig *tls.Config, quicConfig *quic.Config, enableDatagrams bool) (http.RoundTripper, error) {
 	return &http3.RoundTripper{
 		TLSClientConfig: tlsConfig,
 		QuicConfig:      quicConfig,
@@ -81,39 +59,17 @@ func CreateTransport(conn net.PacketConn, quicConnPtr *quic.EarlyConnection, ser
 	}, nil
 }
 
-func Listen(conn net.PacketConn, config aTLS.ServerConfig, quicConfig *quic.Config) (Listener, error) {
-	if quicTLSConfig, isQUICConfig := config.(ServerConfig); isQUICConfig {
-		return quicTLSConfig.Listen(conn, quicConfig)
-	}
-	tlsConfig, err := config.Config()
-	if err != nil {
-		return nil, err
-	}
+func Listen(conn net.PacketConn, tlsConfig *tls.Config, quicConfig *quic.Config) (Listener, error) {
 	return quic.Listen(conn, tlsConfig, quicConfig)
 }
 
-func ListenEarly(conn net.PacketConn, config aTLS.ServerConfig, quicConfig *quic.Config) (EarlyListener, error) {
-	if quicTLSConfig, isQUICConfig := config.(ServerConfig); isQUICConfig {
-		return quicTLSConfig.ListenEarly(conn, quicConfig)
-	}
-	tlsConfig, err := config.Config()
-	if err != nil {
-		return nil, err
-	}
+func ListenEarly(conn net.PacketConn, tlsConfig *tls.Config, quicConfig *quic.Config) (EarlyListener, error) {
 	return quic.ListenEarly(conn, tlsConfig, quicConfig)
 }
 
-func ConfigureHTTP3(config aTLS.ServerConfig) error {
-	if len(config.NextProtos()) == 0 {
-		config.SetNextProtos([]string{http3.NextProtoH3})
-	}
-	if quicTLSConfig, isQUICConfig := config.(ServerConfig); isQUICConfig {
-		quicTLSConfig.ConfigureHTTP3()
-		return nil
-	}
-	tlsConfig, err := config.Config()
-	if err != nil {
-		return err
+func ConfigureHTTP3(tlsConfig *tls.Config) error {
+	if len(tlsConfig.NextProtos) == 0 {
+		tlsConfig.NextProtos = []string{http3.NextProtoH3}
 	}
 	http3.ConfigureTLSConfig(tlsConfig)
 	return nil

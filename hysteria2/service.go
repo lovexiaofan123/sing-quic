@@ -2,6 +2,7 @@ package hysteria2
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"net"
 	"net/http"
@@ -22,7 +23,6 @@ import (
 	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
-	aTLS "github.com/sagernet/sing/common/tls"
 )
 
 type ServiceOptions struct {
@@ -32,7 +32,7 @@ type ServiceOptions struct {
 	ReceiveBPS            uint64
 	IgnoreClientBandwidth bool
 	SalamanderPassword    string
-	TLSConfig             aTLS.ServerConfig
+	TLSConfig             *tls.Config
 	UDPDisabled           bool
 	Handler               ServerHandler
 	MasqueradeHandler     http.Handler
@@ -50,7 +50,7 @@ type Service[U comparable] struct {
 	receiveBPS            uint64
 	ignoreClientBandwidth bool
 	salamanderPassword    string
-	tlsConfig             aTLS.ServerConfig
+	tlsConfig             *tls.Config
 	quicConfig            *quic.Config
 	userMap               map[string]U
 	udpDisabled           bool

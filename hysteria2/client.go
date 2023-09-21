@@ -2,6 +2,7 @@ package hysteria2
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"net"
 	"net/http"
@@ -20,7 +21,6 @@ import (
 	E "github.com/sagernet/sing/common/exceptions"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
-	aTLS "github.com/sagernet/sing/common/tls"
 )
 
 const (
@@ -38,7 +38,7 @@ type ClientOptions struct {
 	ReceiveBPS         uint64
 	SalamanderPassword string
 	Password           string
-	TLSConfig          aTLS.Config
+	TLSConfig          *tls.Config
 	UDPDisabled        bool
 }
 
@@ -50,7 +50,7 @@ type Client struct {
 	receiveBPS         uint64
 	salamanderPassword string
 	password           string
-	tlsConfig          aTLS.Config
+	tlsConfig          *tls.Config
 	quicConfig         *quic.Config
 	udpDisabled        bool
 
