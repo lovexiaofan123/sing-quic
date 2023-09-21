@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/metacubex/sing-quic/congestion"
 	"github.com/sagernet/quic-go"
-	"github.com/sagernet/sing-quic/congestion"
 	"github.com/sagernet/sing/common/ntp"
 )
 
