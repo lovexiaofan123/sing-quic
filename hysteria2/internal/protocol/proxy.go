@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sagernet/quic-go/quicvarint"
+	"github.com/metacubex/quic-go/quicvarint"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/buf"
 	E "github.com/sagernet/sing/common/exceptions"

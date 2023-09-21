@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/sagernet/quic-go"
-	"github.com/sagernet/quic-go/http3"
+	"github.com/metacubex/quic-go"
+	"github.com/metacubex/quic-go/http3"
 	M "github.com/sagernet/sing/common/metadata"
 	aTLS "github.com/sagernet/sing/common/tls"
 )

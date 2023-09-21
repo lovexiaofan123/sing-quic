@@ -1,6 +1,6 @@
 package hysteria2
 
-import "github.com/sagernet/quic-go"
+import "github.com/metacubex/quic-go"
 
 var SetCongestionController = func(quicConn quic.Connection, cc string, cwnd int) {
 	// do nothing
