@@ -40,6 +40,7 @@ type ClientOptions struct {
 	Password           string
 	TLSConfig          *tls.Config
 	UDPDisabled        bool
+	CWND               int
 }
 
 type Client struct {
@@ -53,6 +54,7 @@ type Client struct {
 	tlsConfig          *tls.Config
 	quicConfig         *quic.Config
 	udpDisabled        bool
+	cwnd               int
 
 	connAccess sync.RWMutex
 	conn       *clientQUICConnection
@@ -80,6 +82,7 @@ func NewClient(options ClientOptions) (*Client, error) {
 		tlsConfig:          options.TLSConfig,
 		quicConfig:         quicConfig,
 		udpDisabled:        options.UDPDisabled,
+		cwnd:               options.CWND,
 	}, nil
 }
 
@@ -151,7 +154,7 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 	if !authResponse.RxAuto && actualTx > 0 {
 		quicConn.SetCongestionControl(hyCC.NewBrutalSender(actualTx))
 	} else {
-		SetCongestionController(quicConn, "bbr", 32)
+		SetCongestionController(quicConn, "bbr", c.cwnd)
 	}
 	conn := &clientQUICConnection{
 		quicConn:    quicConn,

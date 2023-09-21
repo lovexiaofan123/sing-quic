@@ -36,6 +36,7 @@ type ServiceOptions struct {
 	UDPDisabled           bool
 	Handler               ServerHandler
 	MasqueradeHandler     http.Handler
+	CWND                  int
 }
 
 type ServerHandler interface {
@@ -57,6 +58,7 @@ type Service[U comparable] struct {
 	handler               ServerHandler
 	masqueradeHandler     http.Handler
 	quicListener          io.Closer
+	cwnd                  int
 }
 
 func NewService[U comparable](options ServiceOptions) (*Service[U], error) {
@@ -195,7 +197,7 @@ func (s *serverSession[U]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			s.quicConn.SetCongestionControl(hyCC.NewBrutalSender(sendBps))
 		} else {
-			SetCongestionController(s.quicConn, "bbr", 32)
+			SetCongestionController(s.quicConn, "bbr", s.cwnd)
 		}
 		protocol.AuthResponseToHeader(w.Header(), protocol.AuthResponse{
 			UDPEnabled: !s.udpDisabled,
