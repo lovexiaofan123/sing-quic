@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/metacubex/sing-quic"
-	"github.com/metacubex/sing-quic/congestion"
 	hyCC "github.com/metacubex/sing-quic/hysteria2/congestion"
 	"github.com/metacubex/sing-quic/hysteria2/internal/protocol"
 	"github.com/sagernet/quic-go"
@@ -152,12 +151,7 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 	if !authResponse.RxAuto && actualTx > 0 {
 		quicConn.SetCongestionControl(hyCC.NewBrutalSender(actualTx))
 	} else {
-		quicConn.SetCongestionControl(congestion.NewBBRSender(
-			congestion.DefaultClock{},
-			congestion.GetInitialPacketSize(quicConn.RemoteAddr()),
-			congestion.InitialCongestionWindow*congestion.InitialMaxDatagramSize,
-			congestion.DefaultBBRMaxCongestionWindow*congestion.InitialMaxDatagramSize,
-		))
+		SetCongestionController(quicConn, "bbr", 32)
 	}
 	conn := &clientQUICConnection{
 		quicConn:    quicConn,

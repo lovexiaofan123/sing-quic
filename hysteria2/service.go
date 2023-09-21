@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/metacubex/sing-quic"
-	"github.com/metacubex/sing-quic/congestion"
 	hyCC "github.com/metacubex/sing-quic/hysteria2/congestion"
 	"github.com/metacubex/sing-quic/hysteria2/internal/protocol"
 	"github.com/sagernet/quic-go"
@@ -196,12 +195,7 @@ func (s *serverSession[U]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			s.quicConn.SetCongestionControl(hyCC.NewBrutalSender(sendBps))
 		} else {
-			s.quicConn.SetCongestionControl(congestion.NewBBRSender(
-				congestion.DefaultClock{},
-				congestion.GetInitialPacketSize(s.quicConn.RemoteAddr()),
-				congestion.InitialCongestionWindow*congestion.InitialMaxDatagramSize,
-				congestion.DefaultBBRMaxCongestionWindow*congestion.InitialMaxDatagramSize,
-			))
+			SetCongestionController(s.quicConn, "bbr", 32)
 		}
 		protocol.AuthResponseToHeader(w.Header(), protocol.AuthResponse{
 			UDPEnabled: !s.udpDisabled,
