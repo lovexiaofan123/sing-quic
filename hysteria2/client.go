@@ -19,6 +19,7 @@ import (
 	"github.com/sagernet/sing/common/baderror"
 	"github.com/sagernet/sing/common/bufio"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 )
@@ -33,6 +34,8 @@ const (
 type ClientOptions struct {
 	Context            context.Context
 	Dialer             N.Dialer
+	Logger             logger.Logger
+	BrutalDebug        bool
 	ServerAddress      M.Socksaddr
 	SendBPS            uint64
 	ReceiveBPS         uint64
@@ -46,6 +49,8 @@ type ClientOptions struct {
 type Client struct {
 	ctx                context.Context
 	dialer             N.Dialer
+	logger             logger.Logger
+	brutalDebug        bool
 	serverAddr         M.Socksaddr
 	sendBPS            uint64
 	receiveBPS         uint64
@@ -74,6 +79,8 @@ func NewClient(options ClientOptions) (*Client, error) {
 	return &Client{
 		ctx:                options.Context,
 		dialer:             options.Dialer,
+		logger:             options.Logger,
+		brutalDebug:        options.BrutalDebug,
 		serverAddr:         options.ServerAddress,
 		sendBPS:            options.SendBPS,
 		receiveBPS:         options.ReceiveBPS,
@@ -152,7 +159,7 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 		actualTx = c.sendBPS
 	}
 	if !authResponse.RxAuto && actualTx > 0 {
-		quicConn.SetCongestionControl(hyCC.NewBrutalSender(actualTx))
+		quicConn.SetCongestionControl(hyCC.NewBrutalSender(actualTx, c.brutalDebug, c.logger))
 	} else {
 		SetCongestionController(quicConn, "bbr", c.cwnd)
 	}
