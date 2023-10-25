@@ -3,6 +3,7 @@ package hysteria2
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -67,12 +68,12 @@ func NewService[U comparable](options ServiceOptions) (*Service[U], error) {
 		DisablePathMTUDiscovery:        !(runtime.GOOS == "windows" || runtime.GOOS == "linux" || runtime.GOOS == "android" || runtime.GOOS == "darwin"),
 		EnableDatagrams:                !options.UDPDisabled,
 		MaxIncomingStreams:             1 << 60,
-		InitialStreamReceiveWindow:     defaultStreamReceiveWindow,
-		MaxStreamReceiveWindow:         defaultStreamReceiveWindow,
-		InitialConnectionReceiveWindow: defaultConnReceiveWindow,
-		MaxConnectionReceiveWindow:     defaultConnReceiveWindow,
-		MaxIdleTimeout:                 defaultMaxIdleTimeout,
-		KeepAlivePeriod:                defaultKeepAlivePeriod,
+		InitialStreamReceiveWindow:     DefaultStreamReceiveWindow,
+		MaxStreamReceiveWindow:         DefaultStreamReceiveWindow,
+		InitialConnectionReceiveWindow: DefaultConnReceiveWindow,
+		MaxConnectionReceiveWindow:     DefaultConnReceiveWindow,
+		MaxIdleTimeout:                 DefaultMaxIdleTimeout,
+		KeepAlivePeriod:                DefaultKeepAlivePeriod,
 	}
 	if options.MasqueradeHandler == nil {
 		options.MasqueradeHandler = http.NotFoundHandler()
@@ -129,7 +130,7 @@ func (s *Service[U]) loopConnections(listener qtls.Listener) {
 	for {
 		connection, err := listener.Accept(s.ctx)
 		if err != nil {
-			if E.IsClosedOrCanceled(err) {
+			if E.IsClosedOrCanceled(err) || errors.Is(err, quic.ErrServerClosed) {
 				s.logger.Debug(E.Cause(err, "listener closed"))
 			} else {
 				s.logger.Error(E.Cause(err, "listener closed"))
@@ -191,13 +192,11 @@ func (s *serverSession[U]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.authUser = user
 		s.authenticated = true
 		if !s.ignoreClientBandwidth && request.Rx > 0 {
-			var sendBps uint64
-			if s.sendBPS > 0 && s.sendBPS < request.Rx {
-				sendBps = s.sendBPS
-			} else {
-				sendBps = request.Rx
+			rx := request.Rx
+			if s.sendBPS > 0 && rx > s.sendBPS {
+				rx = s.sendBPS
 			}
-			s.quicConn.SetCongestionControl(hyCC.NewBrutalSender(sendBps, s.brutalDebug, s.logger))
+			s.quicConn.SetCongestionControl(hyCC.NewBrutalSender(rx, s.brutalDebug, s.logger))
 		} else {
 			SetCongestionController(s.quicConn, "bbr", s.cwnd)
 		}

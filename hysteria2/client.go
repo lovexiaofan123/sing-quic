@@ -10,7 +10,6 @@ import (
 	"os"
 	"runtime"
 	"sync"
-	"time"
 
 	"github.com/metacubex/quic-go"
 	"github.com/metacubex/sing-quic"
@@ -22,13 +21,6 @@ import (
 	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
-)
-
-const (
-	defaultStreamReceiveWindow = 8388608                            // 8MB
-	defaultConnReceiveWindow   = defaultStreamReceiveWindow * 5 / 2 // 20MB
-	defaultMaxIdleTimeout      = 30 * time.Second
-	defaultKeepAlivePeriod     = 10 * time.Second
 )
 
 type ClientOptions struct {
@@ -68,13 +60,13 @@ type Client struct {
 func NewClient(options ClientOptions) (*Client, error) {
 	quicConfig := &quic.Config{
 		DisablePathMTUDiscovery:        !(runtime.GOOS == "windows" || runtime.GOOS == "linux" || runtime.GOOS == "android" || runtime.GOOS == "darwin"),
-		EnableDatagrams:                true,
-		InitialStreamReceiveWindow:     defaultStreamReceiveWindow,
-		MaxStreamReceiveWindow:         defaultStreamReceiveWindow,
-		InitialConnectionReceiveWindow: defaultConnReceiveWindow,
-		MaxConnectionReceiveWindow:     defaultConnReceiveWindow,
-		MaxIdleTimeout:                 defaultMaxIdleTimeout,
-		KeepAlivePeriod:                defaultKeepAlivePeriod,
+		EnableDatagrams:                !options.UDPDisabled,
+		InitialStreamReceiveWindow:     DefaultStreamReceiveWindow,
+		MaxStreamReceiveWindow:         DefaultStreamReceiveWindow,
+		InitialConnectionReceiveWindow: DefaultConnReceiveWindow,
+		MaxConnectionReceiveWindow:     DefaultConnReceiveWindow,
+		MaxIdleTimeout:                 DefaultMaxIdleTimeout,
+		KeepAlivePeriod:                DefaultKeepAlivePeriod,
 	}
 	return &Client{
 		ctx:                options.Context,
@@ -167,7 +159,7 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 		quicConn:    quicConn,
 		rawConn:     udpConn,
 		connDone:    make(chan struct{}),
-		udpDisabled: c.udpDisabled || !authResponse.UDPEnabled,
+		udpDisabled: !authResponse.UDPEnabled,
 		udpConnMap:  make(map[uint32]*udpPacketConn),
 	}
 	if !c.udpDisabled {
