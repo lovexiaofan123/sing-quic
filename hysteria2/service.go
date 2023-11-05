@@ -78,6 +78,9 @@ func NewService[U comparable](options ServiceOptions) (*Service[U], error) {
 	if options.MasqueradeHandler == nil {
 		options.MasqueradeHandler = http.NotFoundHandler()
 	}
+	if len(options.TLSConfig.NextProtos) == 0 {
+		options.TLSConfig.NextProtos = []string{http3.NextProtoH3}
+	}
 	return &Service[U]{
 		ctx:                   options.Context,
 		logger:                options.Logger,

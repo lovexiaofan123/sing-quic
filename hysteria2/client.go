@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/metacubex/quic-go"
+	"github.com/metacubex/quic-go/http3"
 	"github.com/metacubex/sing-quic"
 	hyCC "github.com/metacubex/sing-quic/hysteria2/congestion"
 	"github.com/metacubex/sing-quic/hysteria2/internal/protocol"
@@ -67,6 +68,9 @@ func NewClient(options ClientOptions) (*Client, error) {
 		MaxConnectionReceiveWindow:     DefaultConnReceiveWindow,
 		MaxIdleTimeout:                 DefaultMaxIdleTimeout,
 		KeepAlivePeriod:                DefaultKeepAlivePeriod,
+	}
+	if len(options.TLSConfig.NextProtos) == 0 {
+		options.TLSConfig.NextProtos = []string{http3.NextProtoH3}
 	}
 	return &Client{
 		ctx:                options.Context,
