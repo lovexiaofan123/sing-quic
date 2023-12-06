@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/metacubex/quic-go v0.40.1-0.20231130135418-0c1b47cf9394
-	github.com/sagernet/sing v0.2.17
+	github.com/sagernet/sing v0.2.19-0.20231207034108-445cd4f41e3f
 	golang.org/x/crypto v0.16.0
 )
 
