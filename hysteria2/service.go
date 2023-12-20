@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/metacubex/quic-go"
 	"github.com/metacubex/quic-go/http3"
@@ -35,6 +36,7 @@ type ServiceOptions struct {
 	SalamanderPassword    string
 	TLSConfig             *tls.Config
 	UDPDisabled           bool
+	UDPTimeout            time.Duration
 	Handler               ServerHandler
 	MasqueradeHandler     http.Handler
 	CWND                  int
@@ -57,6 +59,7 @@ type Service[U comparable] struct {
 	quicConfig            *quic.Config
 	userMap               map[string]U
 	udpDisabled           bool
+	udpTimeout            time.Duration
 	handler               ServerHandler
 	masqueradeHandler     http.Handler
 	quicListener          io.Closer
@@ -93,6 +96,7 @@ func NewService[U comparable](options ServiceOptions) (*Service[U], error) {
 		quicConfig:            quicConfig,
 		userMap:               make(map[string]U),
 		udpDisabled:           options.UDPDisabled,
+		udpTimeout:            options.UDPTimeout,
 		handler:               options.Handler,
 		masqueradeHandler:     options.MasqueradeHandler,
 	}, nil
