@@ -3,9 +3,9 @@ module github.com/metacubex/sing-quic
 go 1.20
 
 require (
-	github.com/metacubex/quic-go v0.40.1-0.20231130135418-0c1b47cf9394
-	github.com/sagernet/sing v0.2.19-0.20231207034108-445cd4f41e3f
-	golang.org/x/crypto v0.16.0
+	github.com/metacubex/quic-go v0.41.1-0.20240120014142-a02f4a533d4a
+	github.com/sagernet/sing v0.3.0
+	golang.org/x/crypto v0.18.0
 )
 
 require (
@@ -18,7 +18,7 @@ require (
 	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
 	golang.org/x/mod v0.11.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 )
