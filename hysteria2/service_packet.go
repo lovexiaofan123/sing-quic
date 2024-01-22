@@ -43,7 +43,7 @@ func (s *serverSession[U]) handleUDPMessage(message *udpMessage) {
 			s.udpAccess.Lock()
 			delete(s.udpConnMap, message.sessionID)
 			s.udpAccess.Unlock()
-		})
+		}, s.udpMTU)
 		udpConn.sessionID = message.sessionID
 		s.udpAccess.Lock()
 		s.udpConnMap[message.sessionID] = udpConn

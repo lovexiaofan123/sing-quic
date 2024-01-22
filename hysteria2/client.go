@@ -37,6 +37,7 @@ type ClientOptions struct {
 	TLSConfig          *tls.Config
 	UDPDisabled        bool
 	CWND               int
+	UdpMTU             int
 }
 
 type Client struct {
@@ -53,6 +54,7 @@ type Client struct {
 	quicConfig         *quic.Config
 	udpDisabled        bool
 	cwnd               int
+	udpMTU             int
 
 	connAccess sync.RWMutex
 	conn       *clientQUICConnection
@@ -86,6 +88,7 @@ func NewClient(options ClientOptions) (*Client, error) {
 		quicConfig:         quicConfig,
 		udpDisabled:        options.UDPDisabled,
 		cwnd:               options.CWND,
+		udpMTU:             options.UdpMTU,
 	}, nil
 }
 
@@ -204,7 +207,7 @@ func (c *Client) ListenPacket(ctx context.Context) (net.PacketConn, error) {
 		conn.udpAccess.Lock()
 		delete(conn.udpConnMap, sessionID)
 		conn.udpAccess.Unlock()
-	})
+	}, c.udpMTU)
 	conn.udpAccess.Lock()
 	sessionID = conn.udpSessionID
 	conn.udpSessionID++

@@ -40,6 +40,7 @@ type ServiceOptions struct {
 	Handler               ServerHandler
 	MasqueradeHandler     http.Handler
 	CWND                  int
+	UdpMTU                int
 }
 
 type ServerHandler interface {
@@ -64,6 +65,7 @@ type Service[U comparable] struct {
 	masqueradeHandler     http.Handler
 	quicListener          io.Closer
 	cwnd                  int
+	udpMTU                int
 }
 
 func NewService[U comparable](options ServiceOptions) (*Service[U], error) {
@@ -99,6 +101,8 @@ func NewService[U comparable](options ServiceOptions) (*Service[U], error) {
 		udpTimeout:            options.UDPTimeout,
 		handler:               options.Handler,
 		masqueradeHandler:     options.MasqueradeHandler,
+		cwnd:                  options.CWND,
+		udpMTU:                options.UdpMTU,
 	}, nil
 }
 
