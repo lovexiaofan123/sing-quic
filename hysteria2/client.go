@@ -256,6 +256,7 @@ func (c *clientQUICConnection) closeWithError(err error) {
 		c.connErr = err
 		close(c.connDone)
 		c.quicConn.CloseWithError(0, "")
+		c.rawConn.Close()
 	})
 }
 
