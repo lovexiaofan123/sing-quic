@@ -4,20 +4,22 @@ import (
 	"context"
 	"crypto/tls"
 	"io"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/metacubex/quic-go"
 	"github.com/metacubex/quic-go/http3"
-	"github.com/metacubex/sing-quic"
+	qtls "github.com/metacubex/sing-quic"
 	hyCC "github.com/metacubex/sing-quic/hysteria2/congestion"
 	"github.com/metacubex/sing-quic/hysteria2/internal/protocol"
+	"github.com/sagernet/sing/common/atomic"
 	"github.com/sagernet/sing/common/baderror"
-	"github.com/sagernet/sing/common/bufio"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
@@ -30,6 +32,8 @@ type ClientOptions struct {
 	Logger             logger.Logger
 	BrutalDebug        bool
 	ServerAddress      M.Socksaddr
+	ServerAddresses    []M.Socksaddr
+	HopInterval        time.Duration
 	SendBPS            uint64
 	ReceiveBPS         uint64
 	SalamanderPassword string
@@ -45,7 +49,9 @@ type Client struct {
 	dialer             N.Dialer
 	logger             logger.Logger
 	brutalDebug        bool
-	serverAddr         M.Socksaddr
+	serverAddr         atomic.TypedValue[M.Socksaddr]
+	serverAddrs        []M.Socksaddr
+	hopInterval        time.Duration
 	sendBPS            uint64
 	receiveBPS         uint64
 	salamanderPassword string
@@ -74,12 +80,13 @@ func NewClient(options ClientOptions) (*Client, error) {
 	if len(options.TLSConfig.NextProtos) == 0 {
 		options.TLSConfig.NextProtos = []string{http3.NextProtoH3}
 	}
-	return &Client{
+	client := &Client{
 		ctx:                options.Context,
 		dialer:             options.Dialer,
 		logger:             options.Logger,
 		brutalDebug:        options.BrutalDebug,
-		serverAddr:         options.ServerAddress,
+		serverAddrs:        options.ServerAddresses,
+		hopInterval:        options.HopInterval,
 		sendBPS:            options.SendBPS,
 		receiveBPS:         options.ReceiveBPS,
 		salamanderPassword: options.SalamanderPassword,
@@ -89,7 +96,30 @@ func NewClient(options ClientOptions) (*Client, error) {
 		udpDisabled:        options.UDPDisabled,
 		cwnd:               options.CWND,
 		udpMTU:             options.UdpMTU,
-	}, nil
+	}
+	client.serverAddr.Store(options.ServerAddress)
+	return client, nil
+}
+
+func (c *Client) hopLoop(conn *clientQUICConnection) {
+	ticker := time.NewTicker(c.hopInterval)
+	defer ticker.Stop()
+	c.logger.Info("Entering hop loop ...")
+	for {
+		select {
+		case <-ticker.C:
+			serverAddr := c.serverAddrs[rand.Intn(len(c.serverAddrs))]
+			c.serverAddr.Store(serverAddr)
+			conn.quicConn.SetRemoteAddr(serverAddr.UDPAddr())
+			c.logger.Info("Hopped to ", serverAddr)
+			continue
+		case <-c.ctx.Done():
+		case <-conn.quicConn.Context().Done():
+		case <-conn.connDone:
+		}
+		c.logger.Info("Exiting hop loop ...")
+		return
+	}
 }
 
 func (c *Client) offer(ctx context.Context) (*clientQUICConnection, error) {
@@ -111,19 +141,18 @@ func (c *Client) offer(ctx context.Context) (*clientQUICConnection, error) {
 }
 
 func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
-	udpConn, err := c.dialer.DialContext(c.ctx, "udp", c.serverAddr)
+	serverAddr := c.serverAddr.Load()
+	packetConn, err := c.dialer.ListenPacket(ctx, serverAddr)
 	if err != nil {
 		return nil, err
 	}
-	var packetConn net.PacketConn
-	packetConn = bufio.NewUnbindPacketConn(udpConn)
 	if c.salamanderPassword != "" {
 		packetConn = NewSalamanderConn(packetConn, []byte(c.salamanderPassword))
 	}
 	var quicConn quic.EarlyConnection
-	http3Transport, err := qtls.CreateTransport(packetConn, &quicConn, c.serverAddr, c.tlsConfig, c.quicConfig, true)
+	http3Transport, err := qtls.CreateTransport(packetConn, &quicConn, serverAddr, c.tlsConfig, c.quicConfig, true)
 	if err != nil {
-		udpConn.Close()
+		packetConn.Close()
 		return nil, err
 	}
 	request := &http.Request{
@@ -141,14 +170,14 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 		if quicConn != nil {
 			quicConn.CloseWithError(0, "")
 		}
-		udpConn.Close()
+		packetConn.Close()
 		return nil, err
 	}
 	if response.StatusCode != protocol.StatusAuthOK {
 		if quicConn != nil {
 			quicConn.CloseWithError(0, "")
 		}
-		udpConn.Close()
+		packetConn.Close()
 		return nil, E.New("authentication failed, status code: ", response.StatusCode)
 	}
 	response.Body.Close()
@@ -164,7 +193,7 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 	}
 	conn := &clientQUICConnection{
 		quicConn:    quicConn,
-		rawConn:     udpConn,
+		rawConn:     packetConn,
 		connDone:    make(chan struct{}),
 		udpDisabled: !authResponse.UDPEnabled,
 		udpConnMap:  make(map[uint32]*udpPacketConn),
@@ -173,6 +202,9 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 		go c.loopMessages(conn)
 	}
 	c.conn = conn
+	if len(c.serverAddrs) > 0 {
+		go c.hopLoop(conn)
+	}
 	return conn, nil
 }
 
