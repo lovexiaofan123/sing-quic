@@ -43,13 +43,13 @@ func DialEarly(ctx context.Context, conn net.PacketConn, addr net.Addr, tlsConfi
 	return quic.DialEarly(ctx, conn, addr, tlsConfig, quicConfig)
 }
 
-func CreateTransport(conn net.PacketConn, quicConnPtr *quic.EarlyConnection, serverAddr M.Socksaddr, tlsConfig *tls.Config, quicConfig *quic.Config, enableDatagrams bool) (http.RoundTripper, error) {
+func CreateTransport(conn net.PacketConn, quicConnPtr *quic.EarlyConnection, serverAddr *net.UDPAddr, tlsConfig *tls.Config, quicConfig *quic.Config, enableDatagrams bool) (http.RoundTripper, error) {
 	return &http3.RoundTripper{
 		TLSClientConfig: tlsConfig,
 		QuicConfig:      quicConfig,
 		EnableDatagrams: enableDatagrams,
 		Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
-			quicConn, err := quic.DialEarly(ctx, conn, serverAddr.UDPAddr(), tlsCfg, cfg)
+			quicConn, err := quic.DialEarly(ctx, conn, serverAddr, tlsCfg, cfg)
 			if err != nil {
 				return nil, err
 			}
