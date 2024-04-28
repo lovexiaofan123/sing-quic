@@ -65,7 +65,7 @@ func (b *BrutalSender) HasPacingBudget(now time.Time) bool {
 }
 
 func (b *BrutalSender) CanSend(bytesInFlight congestion.ByteCount) bool {
-	return bytesInFlight < b.GetCongestionWindow()
+	return bytesInFlight <= b.GetCongestionWindow()
 }
 
 func (b *BrutalSender) GetCongestionWindow() congestion.ByteCount {
@@ -73,7 +73,11 @@ func (b *BrutalSender) GetCongestionWindow() congestion.ByteCount {
 	if rtt <= 0 {
 		return 10240
 	}
-	return congestion.ByteCount(float64(b.bps) * rtt.Seconds() * 1.5 / b.ackRate)
+	cwnd := congestion.ByteCount(float64(b.bps) * rtt.Seconds() * 1.5 / b.ackRate)
+	if cwnd < b.maxDatagramSize {
+		cwnd = b.maxDatagramSize
+	}
+	return cwnd
 }
 
 func (b *BrutalSender) OnPacketSent(sentTime time.Time, bytesInFlight congestion.ByteCount,
