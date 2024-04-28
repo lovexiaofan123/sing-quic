@@ -11,10 +11,11 @@ import (
 const (
 	initMaxDatagramSize = 1252
 
-	pktInfoSlotCount   = 5 // slot index is based on seconds, so this is basically how many seconds we sample
-	minSampleCount     = 50
-	minAckRate         = 0.8
-	debugPrintInterval = 2
+	pktInfoSlotCount           = 5 // slot index is based on seconds, so this is basically how many seconds we sample
+	minSampleCount             = 50
+	minAckRate                 = 0.8
+	congestionWindowMultiplier = 2
+	debugPrintInterval         = 2
 )
 
 var _ congestion.CongestionControlEx = &BrutalSender{}
@@ -73,7 +74,7 @@ func (b *BrutalSender) GetCongestionWindow() congestion.ByteCount {
 	if rtt <= 0 {
 		return 10240
 	}
-	cwnd := congestion.ByteCount(float64(b.bps) * rtt.Seconds() * 1.5 / b.ackRate)
+	cwnd := congestion.ByteCount(float64(b.bps) * rtt.Seconds() * congestionWindowMultiplier / b.ackRate)
 	if cwnd < b.maxDatagramSize {
 		cwnd = b.maxDatagramSize
 	}
