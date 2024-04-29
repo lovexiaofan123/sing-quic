@@ -153,7 +153,7 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 		packetConn = NewSalamanderConn(packetConn, []byte(c.salamanderPassword))
 	}
 	var quicConn quic.EarlyConnection
-	http3Transport, err := qtls.CreateTransport(packetConn, &quicConn, serverAddr, c.tlsConfig, c.quicConfig, true)
+	http3Transport, err := qtls.CreateTransport(packetConn, &quicConn, serverAddr, c.tlsConfig, c.quicConfig)
 	if err != nil {
 		packetConn.Close()
 		return nil, err
