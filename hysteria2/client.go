@@ -96,7 +96,7 @@ func NewClient(options ClientOptions) (*Client, error) {
 	return client, nil
 }
 
-func (c *Client) hopLoop(conn *clientQUICConnection) {
+func (c *Client) hopLoop(conn *clientQUICConnection, remoteAddr *net.UDPAddr) {
 	ticker := time.NewTicker(c.hopInterval)
 	defer ticker.Stop()
 	c.logger.Debug("Entering hop loop ...")
@@ -110,8 +110,10 @@ func (c *Client) hopLoop(conn *clientQUICConnection) {
 				c.logger.Warn("Hop loop fetch serverAddress error: '%s', ignored", err)
 				break
 			}
-			conn.quicConn.SetRemoteAddr(serverAddr)
-			c.logger.Debug("Hopped to ", serverAddr)
+			targetAddr := *remoteAddr         // make a copy
+			targetAddr.Port = serverAddr.Port // only change port
+			conn.quicConn.SetRemoteAddr(&targetAddr)
+			c.logger.Debug("Hopped to ", &targetAddr)
 			continue
 		case <-c.ctx.Done():
 		case <-conn.quicConn.Context().Done():
@@ -206,7 +208,7 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 	}
 	c.conn = conn
 	if c.hopInterval > 0 {
-		go c.hopLoop(conn)
+		go c.hopLoop(conn, serverAddr)
 	}
 	return conn, nil
 }
