@@ -1,5 +1,5 @@
 package hysteria2
-
+2
 import (
 	"bytes"
 	"context"
