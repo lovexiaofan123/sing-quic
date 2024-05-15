@@ -137,7 +137,7 @@ func newUDPPacketConn(ctx context.Context, quicConn quic.Connection, onDestroy f
 		data:      make(chan *udpMessage, 64),
 		defragger: newUDPDefragger(),
 		onDestroy: onDestroy,
-		udpMTU:    udpMTU,
+		udpMTU:    1200 - 3,
 	}
 }
 
